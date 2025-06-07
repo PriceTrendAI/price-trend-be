@@ -1,13 +1,30 @@
 from sqlalchemy.orm import Session
-from . import models, schemas
+from .models import ApartmentData
+from typing import Optional, Dict
+from datetime import datetime
 
-def create_user(db: Session, user: schemas.UserCreate):
-    db_user = models.User(name=user.name, email=user.email)
-    db.add(db_user)
+def save_apartment_data(
+    db: Session,
+    complex_name: str,
+    area_label: int,
+    deal_type: str,
+    crawled_at: Optional[datetime] = None,
+    basic_info: Optional[Dict] = None,
+    area_detail: Optional[Dict] = None,
+    price_history: Optional[Dict] = None,
+    price_monthly_avg: Optional[Dict] = None
+) -> ApartmentData:
+    db_data = ApartmentData(
+        complex_name=complex_name,
+        area_label=area_label,
+        deal_type=deal_type,
+        crawled_at=crawled_at,
+        basic_info=basic_info,
+        area_detail=area_detail,
+        price_history=price_history,
+        price_monthly_avg=price_monthly_avg
+    )
+    db.add(db_data)
     db.commit()
-    db.refresh(db_user)
-    return db_user
-
-def get_users(db: Session):
-    return db.query(models.User).all()
-
+    db.refresh(db_data)
+    return db_data
