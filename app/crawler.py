@@ -21,6 +21,7 @@ from selenium.common.exceptions import TimeoutException
 import datetime
 from sqlalchemy.orm import Session
 from app.models import ApartmentData 
+from app.utils import compute_monthly_avg
 
 
 logging.basicConfig(
@@ -47,19 +48,6 @@ class AreaInfo:
     holding_tax: Dict[str, str]
 
 
-def price_str_to_number(price_str: str) -> int:
-    s = price_str.replace(",", "").strip()
-    total = 0
-    if "억" in s:
-        eok, rest = s.split("억", 1)
-        total += int(eok) * 100_000_000
-        if rest.isdigit():
-            total += int(rest) * 10_000
-    elif s.isdigit():
-        total += int(s) * 10_000
-    return total
-
-
 class SearchPage:
     URL = "https://new.land.naver.com/search"
     INPUT = (By.ID, "land_search")
@@ -78,7 +66,7 @@ class SearchPage:
         elem.clear()
         elem.send_keys(keyword + "\n")
         logger.info("검색어 입력: %s", keyword)
-        time.sleep(random.uniform(2.0, 3.0))
+        time.sleep(random.uniform(1.0, 1.5))
         return self.wait.until(EC.presence_of_all_elements_located(self.ITEM_INNER))
 
 
@@ -317,6 +305,24 @@ class NaverLandCrawler:
         self.driver.quit()
         logger.info("브라우저 종료")
 
+    def parse_summary_info(self) -> dict:
+        driver = self.driver
+        wait = self.wait
+        wait.until(EC.presence_of_element_located((By.ID, "summaryInfo")))
+        summary = driver.find_element(By.ID, "summaryInfo")
+
+        title = summary.find_element(By.ID, "complexTitle").text.strip()
+        dl = summary.find_element(By.CLASS_NAME, "complex_feature")
+        dt_elements = dl.find_elements(By.TAG_NAME, "dt")
+        dd_elements = dl.find_elements(By.TAG_NAME, "dd")
+        feature = {dt.text.strip(): dd.text.strip() for dt, dd in zip(dt_elements, dd_elements)}
+
+        return {
+            "title": title,
+            "feature": feature
+        }
+
+
     def fetch_property_info(self, keyword: str):
         driver = self.driver
         try:
@@ -334,16 +340,10 @@ class NaverLandCrawler:
 
             if is_direct_detail:
                 try:
-                    wait.until(EC.presence_of_element_located((By.ID, "summaryInfo")))
-                    summary = driver.find_element(By.ID, "summaryInfo")
-
-                    title = summary.find_element(By.ID, "complexTitle").text.strip()
-                    address = summary.find_element(By.CLASS_NAME, "complex_title").find_element(By.XPATH, "..").text.split("\n")[1].strip()
-
-                    dl = summary.find_element(By.CLASS_NAME, "complex_feature")
-                    dt_elements = dl.find_elements(By.TAG_NAME, "dt")
-                    dd_elements = dl.find_elements(By.TAG_NAME, "dd")
-                    feature = {dt.text.strip(): dd.text.strip() for dt, dd in zip(dt_elements, dd_elements)}
+                    info = self.parse_summary_info(driver, wait)
+                    title = info["title"]
+                    address = info["address"]
+                    feature = info["feature"]
 
                     COMPLEX_BUTTON = (By.XPATH, '//button[@class="complex_link" and text()="단지정보"]')
                     btn = self.wait.until(EC.element_to_be_clickable(COMPLEX_BUTTON))
@@ -425,81 +425,74 @@ class NaverLandCrawler:
         finally:
             self.close()
 
+    def get_complex_info(self, keyword: str) -> dict:
+        complex_info = {}
+        try:
+            self.search_page.open()
+            self.search_page.search(keyword)
+            try:
+                self.detail_page.click_complex_info()
+                complex_info = self.detail_page.get_complex_info()
+                logger.info(f"단지 정보: {complex_info}")
+            except Exception as e:
+                logger.warning("단지 정보 수집 실패: %s", e)
 
+        finally:
+            self.close()
 
-    def run(self, keyword: str, index: int, area: str, deal_type: str) -> dict:
-        flags = {
-            "complex_info_fetched": False,
-            "area_tab_selected": False,
-            "sise_tab_clicked": False,
-            "price_area_selected": False,
-            "deal_type_selected": False,
-            "price_history_fetched": False,
-            "area_info_fetched": False
+        return {
+            "complex_info": complex_info
         }
 
+    def run(self, keyword: str, area: str, deal_type: str) -> dict:
         complex_info = {}
         area_info = {}
         price_history = {}
 
         try:
             self.search_page.open()
-            items = self.search_page.search(keyword)
-
-            if index < 0 or index >= len(items):
-                raise ValueError(f"잘못된 index: {index + 1}")
-
-            items[index].click()
-            time.sleep(random.uniform(2.0, 3.0))
+            self.search_page.search(keyword)
 
             try:
-                self.detail_page.click_complex_info()
-                complex_info = self.detail_page.get_complex_info()
-                flags["complex_info_fetched"] = True
-                print("\n📦 단지 정보:")
-                print(complex_info)
+                summary_data = self.parse_summary_info()
+                logger.info(f"요약 정보: {summary_data}")
             except Exception as e:
-                logger.warning("단지 정보 수집 실패: %s", e)
+                logger.warning("요약 정보 파싱 실패: %s", e)
+
+            self.detail_page.click_complex_info()
+            complex_info = self.detail_page.get_complex_info()
 
             try:
                 self.detail_page.select_area_tab(area)
-                flags["area_tab_selected"] = True
             except Exception as e:
                 logger.warning("면적 탭 선택 실패: %s", e)
 
             try:
                 area_info = self.detail_page.get_area_info()
-                flags["area_info_fetched"] = True
-                print("\n🏘️ 단지내 면적별 정보:")
-                print(area_info)
+                logger.info(f"단지내 면적별 정보: {area_info}")
             except Exception as e:
                 logger.warning("단지내 면적별 정보 수집 실패: %s", e)
 
             try:
                 self.detail_page.click_sise_tab()
-                flags["sise_tab_clicked"] = True
             except Exception as e:
                 logger.warning("시세 탭 클릭 실패: %s", e)
 
             try:
                 self.detail_page.select_price_area(area)
-                flags["price_area_selected"] = True
             except Exception as e:
                 logger.warning("시세 면적 선택 실패: %s", e)
 
             try:
                 self.detail_page.select_deal_type(deal_type)
-                flags["deal_type_selected"] = True
             except Exception as e:
                 logger.warning("거래 유형 선택 실패: %s", e)
 
             try:
                 self.price_page.load_more()
                 price_history = self.price_page.get_price_history()
-                flags["price_history_fetched"] = True
-                print("\n📊 시세 이력:")
-                for date, data in price_history.items():
-                    print(f"{date}: {data}")
+                logger.info(f"시세 이력: {price_history}")
+                price_monthly_avg = compute_monthly_avg(price_history)
             except Exception as e:
                 logger.warning("시세 이력 수집 실패: %s", e)
 
@@ -507,12 +500,14 @@ class NaverLandCrawler:
             self.close()
 
         return {
-            "flags": flags,
+            "summary_data": summary_data,
             "complex_info": complex_info,
             "area_info": area_info,
-            "price_history": price_history
+            "price_history": price_history,
+            "price_monthly_avg": price_monthly_avg
         }
-    
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="네이버 부동산 시세 크롤러")
     parser.add_argument("keyword", help="검색 키워드")

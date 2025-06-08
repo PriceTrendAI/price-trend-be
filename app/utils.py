@@ -1,5 +1,17 @@
 from collections import defaultdict
-from .crawler import price_str_to_number
+
+def price_str_to_number(price_str: str) -> int:
+    s = price_str.replace(",", "").strip()
+    total = 0
+    if "억" in s:
+        eok, rest = s.split("억", 1)
+        total += int(eok) * 100_000_000
+        if rest.isdigit():
+            total += int(rest) * 10_000
+    elif s.isdigit():
+        total += int(s) * 10_000
+    return total
+
 
 def compute_monthly_avg(price_history: dict) -> dict:
     """

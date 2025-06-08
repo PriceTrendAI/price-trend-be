@@ -6,7 +6,6 @@ from app.database import SessionLocal, engine
 from app.models import Base, ApartmentData
 from app.crawler import NaverLandCrawler
 from app.crud import save_apartment_data
-from app.utils import compute_monthly_avg
 from datetime import datetime
 from app.utils import *
 
@@ -39,28 +38,34 @@ def get_property_info(keyword: str):
     crawler = NaverLandCrawler()
     return crawler.fetch_property_info(keyword=keyword)
 
-@app.get("/crawl/price-data", summary="가격 데이터 크롤링 및 저장")
-def get_monthly_price(
-    keyword: str = Query(..., description="검색어 예: '삼송동일스위트'"),
-    index: int = Query(..., ge=1, description="검색 결과에서 선택할 항목 번호 (1부터)"),
-    area: str = Query(..., description="면적 (예: '84')"),
+@app.get("/complex-info")
+def get_complex_info(keyword: str = Query(..., description="단지명 키워드")):
+    crawler = NaverLandCrawler()
+    return crawler.get_complex_info(keyword)
+
+
+@app.get("/all-info", summary="단지 면적 및 가격 정보 수집 및 저장")
+def save_area_price_data(
+    keyword: str = Query(..., description="검색어 예: '삼송동일스위트2차'"),
+    area: str = Query(..., description="면적 (예: '89')"),
     deal_type: str = Query(..., description="거래 유형 (예: '매매')"),
     db: Session = Depends(get_db),
 ) -> dict:
-    crawler = NaverLandCrawler(headless=True)
+    crawler = NaverLandCrawler()
     try:
-        result = crawler.run(keyword, index - 1, area, deal_type)
+        result = crawler.run(keyword, area, deal_type)
 
+        summary_data = result.get("summary_data", {})
         basic_info = result.get("complex_info", {})
         area_detail = result.get("area_info", {})
         price_history = result.get("price_history", {})
-        price_monthly_avg = compute_monthly_avg(price_history)
+        price_monthly_avg = result.get("price_monthly_avg", {})
 
         save_apartment_data(db=db, complex_name=keyword, area_label=int(area), deal_type=deal_type, 
-                            crawled_at=datetime.utcnow(), basic_info=basic_info, area_detail=area_detail, 
-                            price_history=price_history, price_monthly_avg=price_monthly_avg
+                            crawled_at=datetime.utcnow(), summary_data=summary_data, basic_info=basic_info,
+                            area_detail=area_detail, price_history=price_history, price_monthly_avg=price_monthly_avg
                             )
-        return {"status": "success", "saved": True}
+        return result
     finally:
         crawler.close()
 
