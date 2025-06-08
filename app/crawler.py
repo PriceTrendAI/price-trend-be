@@ -139,7 +139,7 @@ class DetailPage:
             if target_area in btn.text:
                 btn.click()
                 logger.info("시세 면적 '%s' 선택", target_area)
-                time.sleep(random.uniform(1.0, 3.0))
+                time.sleep(random.uniform(1.0, 1.5))
                 return
         logger.warning("%s㎡ 시세 면적을 찾지 못함", target_area)
 
@@ -149,7 +149,7 @@ class DetailPage:
             if tab.text.strip() == deal_type:
                 tab.click()
                 logger.info("거래 유형 '%s' 선택", deal_type)
-                time.sleep(random.uniform(1.0, 3.0))
+                time.sleep(random.uniform(1.0, 1.5))
                 return
         logger.warning("%s 거래 유형을 찾지 못함", deal_type)
 
@@ -258,7 +258,6 @@ class DetailPage:
 
 
 class PricePage:
-    # '매매 시세' 영역의 "더보기" 버튼만 골라내는 XPath
     MORE_BUTTON_XPATH = (
         "//div[contains(@class,'detail_price_data')"
         " and .//table[contains(@class,'detail_data_table') and contains(@class,'type_price')]]"
@@ -273,13 +272,12 @@ class PricePage:
     def load_more(self, limit: int = 10) -> None:
         for i in range(limit):
             try:
-                # 매번 '매매 시세' 더보기 버튼을 다시 찾아 클릭
                 btn = self.wait.until(
                     EC.element_to_be_clickable((By.XPATH, self.MORE_BUTTON_XPATH))
                 )
                 self.driver.execute_script("arguments[0].click();", btn)
                 logger.info("🔁 %d/10 - '매매 시세 더보기' 클릭", i+1)
-                time.sleep(random.uniform(1.0, 3.0))
+                time.sleep(random.uniform(1.0, 1.5))
             except TimeoutException:
                 logger.info("🔔 더 이상 '매매 시세 더보기' 버튼이 없습니다.")
                 break
@@ -302,7 +300,6 @@ class PricePage:
         return history
 
 
-
 class NaverLandCrawler:
     def __init__(self, headless: bool = False):
         service = Service("/usr/bin/chromedriver")
@@ -320,95 +317,114 @@ class NaverLandCrawler:
         self.driver.quit()
         logger.info("브라우저 종료")
 
-    def fetch_property_info(self, keyword: str, selected_index: int = None, direct: bool = False):
+    def fetch_property_info(self, keyword: str):
         driver = self.driver
         try:
             driver.get("https://new.land.naver.com/search")
             wait = WebDriverWait(driver, 10)
+
             search_input = wait.until(EC.presence_of_element_located((By.ID, "land_search")))
             search_input.clear()
             search_input.send_keys(keyword)
             search_input.send_keys(u'\ue007')
 
-            time.sleep(2)
+            time.sleep(random.uniform(1.0, 1.5))
             page_html = driver.page_source
             is_direct_detail = "검색결과" not in page_html
 
             if is_direct_detail:
-                if direct:
-                    selected_index = None
-                else:
-                    selected_index = 0
-                items = [None]
-            else:
-                wait.until(EC.presence_of_element_located((By.CLASS_NAME, "item_inner")))
-                items = driver.find_elements(By.CLASS_NAME, "item_inner")
-                if not items:
-                    return {"error": "검색 결과가 없습니다.", "type": 0}
-
-            if selected_index is None:
-                results = []
-                for idx, item in enumerate(items, start=1):
-                    title = address = item_type = ""
-                    spec_list = []
-                    try:
-                        title_elem = item.find_elements(By.CLASS_NAME, "title")
-                        if title_elem:
-                            title = title_elem[0].text.strip()
-
-                        address_elem = item.find_elements(By.CLASS_NAME, "address")
-                        if address_elem:
-                            address = address_elem[0].text.strip()
-
-                        info_area = item.find_elements(By.CLASS_NAME, "info_area")
-                        if info_area:
-                            type_elem = info_area[0].find_elements(By.CLASS_NAME, "type")
-                            if type_elem:
-                                item_type = type_elem[0].text.strip()
-                            spec_elems = info_area[0].find_elements(By.CLASS_NAME, "spec")
-                            spec_list = [s.text.strip() for s in spec_elems if s.text.strip()]
-                    except Exception:
-                        continue
-                    results.append({"index": idx, "title": title, "address": address, "type": item_type, "specs": spec_list})
-                return {"type": 1, "results": results}
-
-            else:
-                if not is_direct_detail:
-                    if selected_index < 0 or selected_index >= len(items):
-                        return {"error": f"잘못된 선택 번호입니다. (1~{len(items)})", "type": 0}
-                    items[selected_index].click()
-                    time.sleep(2)
-
                 try:
-                    WebDriverWait(driver, 5).until(
-                        EC.presence_of_element_located((By.XPATH, '//button[contains(text(), "시세/실거래가")]'))
-                    ).click()
+                    wait.until(EC.presence_of_element_located((By.ID, "summaryInfo")))
+                    summary = driver.find_element(By.ID, "summaryInfo")
 
-                    sizes = []
-                    try:
-                        area_buttons = WebDriverWait(driver, 5).until(
-                            EC.presence_of_element_located((By.ID, "area_tab_list"))
-                        ).find_elements(By.CSS_SELECTOR, "a.detail_sorting_tab > span.text")
-                        sizes = [btn.text.strip().replace("㎡", "") for btn in area_buttons if "㎡" in btn.text]
-                    except:
-                        pass
+                    title = summary.find_element(By.ID, "complexTitle").text.strip()
+                    address = summary.find_element(By.CLASS_NAME, "complex_title").find_element(By.XPATH, "..").text.split("\n")[1].strip()
 
-                    deal_types = []
-                    try:
-                        deal_tabs = WebDriverWait(driver, 5).until(
-                            EC.presence_of_element_located((By.CLASS_NAME, "detail_sorting_tabs--underbar"))
-                        ).find_elements(By.CLASS_NAME, "detail_sorting_tab")
-                        deal_types = [tab.text.strip() for tab in deal_tabs if tab.text.strip()]
-                    except:
-                        pass
+                    dl = summary.find_element(By.CLASS_NAME, "complex_feature")
+                    dt_elements = dl.find_elements(By.TAG_NAME, "dt")
+                    dd_elements = dl.find_elements(By.TAG_NAME, "dd")
+                    feature = {dt.text.strip(): dd.text.strip() for dt, dd in zip(dt_elements, dd_elements)}
 
-                    return {"type": 2, "sizes": sizes, "deal_types": deal_types}
+                    COMPLEX_BUTTON = (By.XPATH, '//button[@class="complex_link" and text()="단지정보"]')
+                    btn = self.wait.until(EC.element_to_be_clickable(COMPLEX_BUTTON))
+                    btn.click()
+                    logger.info("단지정보 버튼 클릭")
+                    time.sleep(random.uniform(1.0, 1.5))
+                    address_elem = driver.find_elements(By.CSS_SELECTOR, "p.address")
+                    address = address_elem[0].text if address_elem else None
+                    logger.info(f"📌 추출된 주소: {address}")
+                    
+                    return {
+                        "results": [{
+                            "index": 1,
+                            "title": title,
+                            "address": address,
+                            "type": feature.get("유형"),
+                            "households": feature.get("세대수"),
+                            "buildings": feature.get("동수"),
+                            "approval_date": feature.get("사용승인일"),
+                            "area": feature.get("면적")
+                        }],
+                    }
 
-                except:
-                    return {"error": "'시세/실거래가' 버튼이 없습니다.", "type": 0}
+                except Exception as e:
+                    return {"error": f"단지 정보 파싱 실패: {str(e)}", "type": 0}
+
+            else:
+                try:
+                    wait.until(EC.presence_of_element_located((By.CLASS_NAME, "item_inner")))
+                    items = driver.find_elements(By.CLASS_NAME, "item_inner")
+                    if not items:
+                        return {"error": "검색 결과가 없습니다."}
+
+                    results = []
+                    for idx, item in enumerate(items, start=1):
+                        title = address = item_type = ""
+                        spec_list = []
+                        try:
+                            title_elem = item.find_elements(By.CLASS_NAME, "title")
+                            if title_elem:
+                                title = title_elem[0].text.strip()
+
+                            address_elem = item.find_elements(By.CLASS_NAME, "address")
+                            if address_elem:
+                                address = address_elem[0].text.strip()
+
+                            info_area = item.find_elements(By.CLASS_NAME, "info_area")
+                            if info_area:
+                                type_elem = info_area[0].find_elements(By.CLASS_NAME, "type")
+                                if type_elem:
+                                    item_type = type_elem[0].text.strip()
+                                spec_elems = info_area[0].find_elements(By.CLASS_NAME, "spec")
+                                spec_list = [s.text.strip() for s in spec_elems if s.text.strip()]
+                        except Exception:
+                            continue
+
+                        specs_map = {}
+                        if len(spec_list) >= 4:
+                            specs_map = {
+                                "households": spec_list[0],
+                                "buildings": spec_list[1],
+                                "approval_date": spec_list[2], 
+                                "area": spec_list[3],
+                            }
+
+                        results.append({
+                            "index": idx,
+                            "title": title,
+                            "address": address,
+                            "type": item_type,
+                            **specs_map
+                        })
+
+                    return {"results": results}
+
+                except Exception as e:
+                    return {"error": f"검색 리스트 파싱 실패: {str(e)}"}
 
         finally:
             self.close()
+
 
 
     def run(self, keyword: str, index: int, area: str, deal_type: str) -> dict:
@@ -422,7 +438,6 @@ class NaverLandCrawler:
             "area_info_fetched": False
         }
 
-        # 수집한 실제 데이터 저장할 변수들
         complex_info = {}
         area_info = {}
         price_history = {}
