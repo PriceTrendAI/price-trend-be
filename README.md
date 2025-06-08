@@ -5,8 +5,18 @@
 ## 📦 환경 구축 가이드
 ### 1. 시스템 패키지 설치
 ```bash
+# ubuntu 24.04
 sudo apt update
-sudo apt install python3-full python3-venv mysql-server
+sudo apt install -y python3-full python3-venv mysql-server
+sudo apt install -y chromium-browser
+sudo apt install -y uvicorn
+
+google-chrome --version  # ex) Google Chrome 137.0.7151.68
+wget https://storage.googleapis.com/chrome-for-testing-public/137.0.7151.68/linux64/chromedriver-linux64.zip
+unzip chromedriver-linux64.zip
+sudo mv chromedriver-linux64/chromedriver /usr/local/bin/chromedriver
+sudo chmod +x /usr/local/bin/chromedriver
+chromedriver --version   # ex) ChromeDriver 137.0.7151.68 
 ```
 
 ### 2. 가상환경 및 Python 패키지 설치
@@ -58,12 +68,17 @@ uvicorn app.main:app --reload
 
 ## 🗂 디렉토리 구조
 ```bash
-price-trend-be/
-├── app/
-│   ├── main.py
-│   ├── database.py
-│   └── ...
-├── .env
+price-trend-be
 ├── README.md
-└── price-trend-ai/ (venv)
+├── .env
+├── app
+│   ├── crawler.py
+│   ├── crud.py
+│   ├── database.py
+│   ├── main.py
+│   ├── models.py
+│   ├── schemas.py
+│   └── utils.py
+├── price-trend-ai/ (venv)
+└── requirements.txt
 ```
