@@ -6,7 +6,7 @@ class ApartmentBase(BaseModel):
     complex_name: str
     area_label: int
     deal_type: str
-    basic_info: Optional[Dict] = None
+    complex_info: Optional[Dict] = None
     area_detail: Optional[Dict] = None
     price_history: Optional[Dict] = None
     price_monthly_avg: Optional[Dict] = None

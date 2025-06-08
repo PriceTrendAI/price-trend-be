@@ -10,7 +10,7 @@ def save_apartment_data(
     deal_type: str,
     crawled_at: Optional[datetime] = None,
     summary_data: Optional[Dict] = None,
-    basic_info: Optional[Dict] = None,
+    complex_info: Optional[Dict] = None,
     area_detail: Optional[Dict] = None,
     price_history: Optional[Dict] = None,
     price_monthly_avg: Optional[Dict] = None
@@ -21,7 +21,7 @@ def save_apartment_data(
         deal_type=deal_type,
         crawled_at=crawled_at,
         summary_data=summary_data,
-        basic_info=basic_info,
+        complex_info=complex_info,
         area_detail=area_detail,
         price_history=price_history,
         price_monthly_avg=price_monthly_avg

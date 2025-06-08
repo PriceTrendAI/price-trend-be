@@ -12,7 +12,7 @@ class ApartmentData(Base):
     deal_type = Column(String(20), nullable=False) 
     crawled_at = Column(DateTime, nullable=True)
     summary_data = Column(JSON, nullable=True)
-    basic_info = Column(JSON, nullable=True)
+    complex_info = Column(JSON, nullable=True)
     area_detail = Column(JSON, nullable=True)
     price_history = Column(JSON, nullable=True)
     price_monthly_avg = Column(JSON, nullable=True)

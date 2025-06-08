@@ -446,7 +446,7 @@ class NaverLandCrawler:
 
     def run(self, keyword: str, area: str, deal_type: str) -> dict:
         complex_info = {}
-        area_info = {}
+        area_detail = {}
         price_history = {}
 
         try:
@@ -468,8 +468,8 @@ class NaverLandCrawler:
                 logger.warning("면적 탭 선택 실패: %s", e)
 
             try:
-                area_info = self.detail_page.get_area_info()
-                logger.info(f"단지내 면적별 정보: {area_info}")
+                area_detail = self.detail_page.get_area_info()
+                logger.info(f"단지내 면적별 정보: {area_detail}")
             except Exception as e:
                 logger.warning("단지내 면적별 정보 수집 실패: %s", e)
 
@@ -502,7 +502,7 @@ class NaverLandCrawler:
         return {
             "summary_data": summary_data,
             "complex_info": complex_info,
-            "area_info": area_info,
+            "area_detail": area_detail,
             "price_history": price_history,
             "price_monthly_avg": price_monthly_avg
         }
