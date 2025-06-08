@@ -1,4 +1,6 @@
 from collections import defaultdict
+import pandas as pd
+from prophet import Prophet
 
 def price_str_to_number(price_str: str) -> int:
     s = price_str.replace(",", "").strip()
@@ -14,14 +16,10 @@ def price_str_to_number(price_str: str) -> int:
 
 
 def compute_monthly_avg(price_history: dict) -> dict:
-    """
-    날짜별 시세 이력을 받아 월별 평균 하한가/상한가를 계산.
-    예: {"2025-06-01": {"하한가": "4억2000", "상한가": "4억6000"}, ...}
-    """
     monthly_data = defaultdict(lambda: {"하한가": [], "상한가": []})
 
     for date, values in price_history.items():
-        month = date[:7]  # 예: '2025-06'
+        month = date[:7] 
 
         low = price_str_to_number(values.get("하한가", "0"))
         high = price_str_to_number(values.get("상한가", "0"))
@@ -40,9 +38,40 @@ def compute_monthly_avg(price_history: dict) -> dict:
             "평균 하한가": avg_low,
             "평균 상한가": avg_high
         }
-    print("📅 월별 평균 매매가:")
-    print(monthly_avg)
     return monthly_avg
+
+
+def run_forecast_from_avg(price_monthly_avg: dict) -> dict:
+    df = pd.DataFrame([
+        {
+            "ds": pd.to_datetime(date),
+            "y": (val["평균 상한가"] + val["평균 하한가"]) / 2
+        }
+        for date, val in price_monthly_avg.items()
+    ])
+
+    df['ds'] = df['ds'].dt.strftime("%Y-%m")
+    actual_map = dict(zip(df['ds'], df['y']))
+
+    df['ds'] = pd.to_datetime(df['ds']) 
+    model = Prophet()
+    model.fit(df)
+    future = model.make_future_dataframe(periods=12, freq='M')
+    forecast = model.predict(future)
+
+    forecast['ds'] = forecast['ds'].dt.strftime("%Y-%m")
+    forecast['actual'] = forecast['ds'].map(actual_map)
+
+    result_dict = {
+        row['ds']: {
+            "actual": round(row["actual"], 2) if pd.notnull(row["actual"]) else None,
+            "predicted": round(row["yhat"], 2),
+            "lower": round(row["yhat_lower"], 2),
+            "upper": round(row["yhat_upper"], 2)
+        }
+        for _, row in forecast.iterrows()
+    }
+    return result_dict
 
 
 def convert_complex_info_keys(complex_info: dict) -> dict:
@@ -83,14 +112,12 @@ def convert_area_info_keys(area_info: dict) -> dict:
         "공시가격": "official_price",
         "보유세": "holding_tax",
     }
-
     result = {}
     for k, v in area_info.items():
         if k == "maintenance_cost" and isinstance(v, dict):
             result["maintenance_cost"] = v 
         else:
             result[key_map.get(k, k)] = v 
-
     return result
 
 

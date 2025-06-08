@@ -10,6 +10,7 @@ class ApartmentBase(BaseModel):
     area_detail: Optional[Dict] = None
     price_history: Optional[Dict] = None
     price_monthly_avg: Optional[Dict] = None
+    forecast_json: Optional[Dict] = None
 
     class Config:
         orm_mode = True

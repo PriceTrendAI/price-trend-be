@@ -60,11 +60,12 @@ def save_area_price_data(
         area_detail = result.get("area_detail", {})
         price_history = result.get("price_history", {})
         price_monthly_avg = result.get("price_monthly_avg", {})
+        forecast_json = result.get("forecast_json", {})
 
         save_apartment_data(db=db, complex_name=keyword, area_label=int(area), deal_type=deal_type, 
                             crawled_at=datetime.utcnow(), summary_data=summary_data, complex_info=complex_info,
-                            area_detail=area_detail, price_history=price_history, price_monthly_avg=price_monthly_avg
-                            )
+                            area_detail=area_detail, price_history=price_history, price_monthly_avg=price_monthly_avg,
+                            forecast_json=forecast_json)
         return result
     finally:
         crawler.close()

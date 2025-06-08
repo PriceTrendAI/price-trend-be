@@ -13,7 +13,8 @@ def save_apartment_data(
     complex_info: Optional[Dict] = None,
     area_detail: Optional[Dict] = None,
     price_history: Optional[Dict] = None,
-    price_monthly_avg: Optional[Dict] = None
+    price_monthly_avg: Optional[Dict] = None,
+    forecast_json: Optional[Dict] = None
 ) -> ApartmentData:
     db_data = ApartmentData(
         complex_name=complex_name,
@@ -24,7 +25,8 @@ def save_apartment_data(
         complex_info=complex_info,
         area_detail=area_detail,
         price_history=price_history,
-        price_monthly_avg=price_monthly_avg
+        price_monthly_avg=price_monthly_avg,
+        forecast_json=forecast_json
     )
     db.add(db_data)
     db.commit()

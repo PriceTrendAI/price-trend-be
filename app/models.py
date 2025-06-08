@@ -16,5 +16,6 @@ class ApartmentData(Base):
     area_detail = Column(JSON, nullable=True)
     price_history = Column(JSON, nullable=True)
     price_monthly_avg = Column(JSON, nullable=True)
+    forecast_json = Column(JSON, nullable=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False) 
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False) 

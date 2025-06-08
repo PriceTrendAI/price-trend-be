@@ -21,7 +21,7 @@ from selenium.common.exceptions import TimeoutException
 import datetime
 from sqlalchemy.orm import Session
 from app.models import ApartmentData 
-from app.utils import compute_monthly_avg
+from app.utils import compute_monthly_avg, run_forecast_from_avg
 
 
 logging.basicConfig(
@@ -119,7 +119,7 @@ class DetailPage:
     def click_sise_tab(self) -> None:
         tab = self.wait.until(EC.element_to_be_clickable(self.SISE_TAB))
         tab.click()
-        logger.info("'시세/실거래가' 탭 클릭")
+        logger.info("시세/실거래가 탭 클릭")
 
     def select_price_area(self, target_area: str) -> None:
         area_buttons = self.wait.until(EC.presence_of_all_elements_located(self.PRICE_AREA_TABS))
@@ -257,17 +257,17 @@ class PricePage:
         self.driver = driver
         self.wait = wait
 
-    def load_more(self, limit: int = 10) -> None:
+    def load_more(self, limit: int = 100) -> None:
+        logger.info("매매 시세 더보기 %d번 클릭", limit)
         for i in range(limit):
             try:
                 btn = self.wait.until(
                     EC.element_to_be_clickable((By.XPATH, self.MORE_BUTTON_XPATH))
                 )
                 self.driver.execute_script("arguments[0].click();", btn)
-                logger.info("🔁 %d/10 - '매매 시세 더보기' 클릭", i+1)
-                time.sleep(random.uniform(1.0, 1.5))
+                time.sleep(random.uniform(0.2, 0.3))
             except TimeoutException:
-                logger.info("🔔 더 이상 '매매 시세 더보기' 버튼이 없습니다.")
+                logger.info("더 이상 '매매 시세 더보기' 버튼이 없습니다.")
                 break
 
     def get_price_history(self) -> Dict[str, Dict[str, str]]:
@@ -491,10 +491,17 @@ class NaverLandCrawler:
             try:
                 self.price_page.load_more()
                 price_history = self.price_page.get_price_history()
-                logger.info(f"시세 이력: {price_history}")
-                price_monthly_avg = compute_monthly_avg(price_history)
+                #logger.info(f"시세 이력: {price_history}")   
             except Exception as e:
                 logger.warning("시세 이력 수집 실패: %s", e)
+
+            try:    
+                price_monthly_avg = compute_monthly_avg(price_history)
+                logger.info(f"월별 평균 매매가: {price_monthly_avg}")
+                forecast_json  = run_forecast_from_avg(price_monthly_avg)
+                logger.info(f"12개월 가격 예측: {forecast_json}")
+            except Exception as e:
+                logger.warning("부동산 가격 예측 실패: %s", e)
 
         finally:
             self.close()
@@ -504,7 +511,8 @@ class NaverLandCrawler:
             "complex_info": complex_info,
             "area_detail": area_detail,
             "price_history": price_history,
-            "price_monthly_avg": price_monthly_avg
+            "price_monthly_avg": price_monthly_avg,
+            "forecast_json": forecast_json,
         }
 
 
