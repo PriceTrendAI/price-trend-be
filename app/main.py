@@ -1,4 +1,6 @@
 from fastapi import FastAPI, Query, Depends
+from fastapi.middleware.cors import CORSMiddleware
+
 from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine
 from app.models import Base, ApartmentData
@@ -12,6 +14,19 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
+origins = [
+    "http://localhost:5173",  
+    "http://127.0.0.1:5173"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,      
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 def get_db():
     db = SessionLocal()
     try:
@@ -23,7 +38,6 @@ def get_db():
 def get_property_info(keyword: str):
     crawler = NaverLandCrawler()
     return crawler.fetch_property_info(keyword=keyword)
-
 
 @app.get("/crawl/price-data", summary="가격 데이터 크롤링 및 저장")
 def get_monthly_price(
@@ -47,15 +61,12 @@ def get_monthly_price(
                             price_history=price_history, price_monthly_avg=price_monthly_avg
                             )
         return {"status": "success", "saved": True}
-
     finally:
         crawler.close()
-
 
 @app.get("/apartments", summary="모든 아파트 데이터 조회")
 def get_all_apartments(db: Session = Depends(get_db)):
     return db.query(ApartmentData).order_by(ApartmentData.crawled_at.desc()).all()
-
 
 @app.get("/apartments/{apartment_id}", summary="ID로 아파트 데이터 조회")
 def get_apartment_by_id(apartment_id: int, db: Session = Depends(get_db)):
