@@ -32,3 +32,12 @@ def save_apartment_data(
     db.commit()
     db.refresh(db_data)
     return db_data
+
+
+def delete_apartment_by_id(db: Session, apartment_id: int) -> bool:
+    apartment = db.query(ApartmentData).filter(ApartmentData.id == apartment_id).first()
+    if not apartment:
+        return False
+    db.delete(apartment)
+    db.commit()
+    return True

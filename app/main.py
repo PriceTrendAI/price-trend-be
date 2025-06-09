@@ -1,11 +1,12 @@
 from fastapi import FastAPI, Query, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import HTTPException
 
 from sqlalchemy.orm import Session
 from app.database import SessionLocal, engine
 from app.models import Base, ApartmentData
 from app.crawler import NaverLandCrawler
-from app.crud import save_apartment_data
+from app.crud import save_apartment_data, delete_apartment_by_id
 from datetime import datetime
 from app.utils import *
 
@@ -33,10 +34,12 @@ def get_db():
     finally:
         db.close()
 
+
 @app.get("/search")
 def get_property_info(keyword: str):
     crawler = NaverLandCrawler()
     return crawler.fetch_property_info(keyword=keyword)
+
 
 @app.get("/complex-info")
 def get_complex_info(keyword: str = Query(..., description="단지명 키워드")):
@@ -70,10 +73,20 @@ def save_area_price_data(
     finally:
         crawler.close()
 
+
 @app.get("/apartments", summary="모든 아파트 데이터 조회")
 def get_all_apartments(db: Session = Depends(get_db)):
     return db.query(ApartmentData).order_by(ApartmentData.crawled_at.desc()).all()
 
+
 @app.get("/apartments/{apartment_id}", summary="ID로 아파트 데이터 조회")
 def get_apartment_by_id(apartment_id: int, db: Session = Depends(get_db)):
     return db.query(ApartmentData).filter(ApartmentData.id == apartment_id).first()
+
+
+@app.delete("/apartments/{apartment_id}", summary="ID로 아파트 데이터 삭제")
+def delete_apartment(apartment_id: int, db: Session = Depends(get_db)):
+    success = delete_apartment_by_id(db, apartment_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="해당 아파트 데이터를 찾을 수 없습니다.")
+    return {"message": f"{apartment_id}번 아파트 데이터가 삭제되었습니다."}
