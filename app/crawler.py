@@ -341,19 +341,17 @@ class NaverLandCrawler:
 
             if is_direct_detail:
                 try:
-                    info = self.parse_summary_info(driver, wait)
+                    info = self.parse_summary_info()
                     title = info["title"]
-                    address = info["address"]
                     feature = info["feature"]
-
                     COMPLEX_BUTTON = (By.XPATH, '//button[@class="complex_link" and text()="단지정보"]')
                     btn = self.wait.until(EC.element_to_be_clickable(COMPLEX_BUTTON))
                     btn.click()
+                    time.sleep(random.uniform(0.5, 1.0))
                     logger.info("단지정보 버튼 클릭")
-                    time.sleep(random.uniform(1.0, 1.5))
                     address_elem = driver.find_elements(By.CSS_SELECTOR, "p.address")
                     address = address_elem[0].text if address_elem else None
-                    logger.info(f"📌 추출된 주소: {address}")
+                    logger.info(f"address : {address}")
                     
                     return {
                         "results": [{
