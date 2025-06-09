@@ -4,7 +4,7 @@ from datetime import datetime
 
 class ApartmentBase(BaseModel):
     complex_name: str
-    area_label: int
+    area_label: str
     deal_type: str
     complex_info: Optional[Dict] = None
     area_detail: Optional[Dict] = None

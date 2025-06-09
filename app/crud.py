@@ -6,7 +6,7 @@ from datetime import datetime
 def save_apartment_data(
     db: Session,
     complex_name: str,
-    area_label: int,
+    area_label: str,
     deal_type: str,
     crawled_at: Optional[datetime] = None,
     summary_data: Optional[Dict] = None,

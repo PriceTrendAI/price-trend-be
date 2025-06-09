@@ -8,8 +8,8 @@ class ApartmentData(Base):
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     complex_name = Column(String(255), nullable=False)
-    area_label = Column(Integer, nullable=False)
-    deal_type = Column(String(20), nullable=False) 
+    area_label = Column(String(10), nullable=False)
+    deal_type = Column(String(10), nullable=False) 
     crawled_at = Column(DateTime, nullable=True)
     summary_data = Column(JSON, nullable=True)
     complex_info = Column(JSON, nullable=True)
