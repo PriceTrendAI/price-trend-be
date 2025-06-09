@@ -16,7 +16,7 @@ app = FastAPI()
 
 origins = [
     "http://localhost:5173",  
-    "http://127.0.0.1:5173"
+    "http://127.0.0.1:5173",
 ]
 
 app.add_middleware(
@@ -37,13 +37,13 @@ def get_db():
 
 @app.get("/search")
 def get_property_info(keyword: str):
-    crawler = NaverLandCrawler()
+    crawler = NaverLandCrawler(headless=True)
     return crawler.fetch_property_info(keyword=keyword)
 
 
 @app.get("/complex-info")
 def get_complex_info(keyword: str = Query(..., description="단지명 키워드")):
-    crawler = NaverLandCrawler()
+    crawler = NaverLandCrawler(headless=True)
     return crawler.get_complex_info(keyword)
 
 
@@ -54,7 +54,7 @@ def save_area_price_data(
     deal_type: str = Query(..., description="거래 유형 (예: '매매')"),
     db: Session = Depends(get_db),
 ) -> dict:
-    crawler = NaverLandCrawler()
+    crawler = NaverLandCrawler(headless=True)
     try:
         result = crawler.run(keyword, area, deal_type)
 

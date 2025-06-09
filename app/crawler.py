@@ -108,13 +108,27 @@ class DetailPage:
         return info
 
     def select_area_tab(self, target_area: str) -> None:
-        tabs = self.wait.until(EC.presence_of_all_elements_located(self.AREA_TABS))
-        for tab in tabs:
-            if tab.text.strip() == f"{target_area}㎡":
-                tab.click()
-                logger.info("%s㎡ 탭 선택", target_area)
-                return
-        logger.warning("%s㎡ 탭을 찾을 수 없음", target_area)
+        try:
+            more_button = self.driver.find_element(By.CSS_SELECTOR, "button.btn_moretab")
+            if more_button.is_displayed():
+                more_button.click()
+                time.sleep(random.uniform(0.2, 0.6))
+                logger.info("면적 더보기 버튼 클릭 완료")
+        except Exception:
+            logger.info("더보기 버튼 없음 또는 이미 펼쳐져 있음")
+
+        try:
+            tabs = self.wait.until(
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".detail_sorting_tab .text"))
+            )
+            for tab_text in tabs:
+                if tab_text.text.strip().startswith(target_area):
+                    tab_text.click()
+                    logger.info("%s㎡ 탭 클릭 완료", target_area)
+                    return
+            logger.warning("%s㎡ 탭을 찾지 못함", target_area)
+        except Exception as e:
+            logger.error("면적 탭 선택 중 오류 발생: %s", e)
 
     def click_sise_tab(self) -> None:
         tab = self.wait.until(EC.element_to_be_clickable(self.SISE_TAB))
@@ -432,7 +446,7 @@ class NaverLandCrawler:
             try:
                 self.detail_page.click_complex_info()
                 complex_info = self.detail_page.get_complex_info()
-                logger.info(f"단지 정보: {complex_info}")
+                #logger.info(f"단지 정보: {complex_info}")
             except Exception as e:
                 logger.warning("단지 정보 수집 실패: %s", e)
 
@@ -457,7 +471,7 @@ class NaverLandCrawler:
 
             try:
                 summary_data = self.parse_summary_info()
-                logger.info(f"요약 정보: {summary_data}")
+                #logger.info(f"요약 정보: {summary_data}")
             except Exception as e:
                 logger.warning("요약 정보 파싱 실패: %s", e)
 
@@ -471,7 +485,7 @@ class NaverLandCrawler:
 
             try:
                 area_detail = self.detail_page.get_area_info()
-                logger.info(f"단지내 면적별 정보: {area_detail}")
+                #logger.info(f"단지내 면적별 정보: {area_detail}")
             except Exception as e:
                 logger.warning("단지내 면적별 정보 수집 실패: %s", e)
 
@@ -499,9 +513,9 @@ class NaverLandCrawler:
 
             try:    
                 price_monthly_avg = compute_monthly_avg(price_history)
-                logger.info(f"월별 평균 매매가: {price_monthly_avg}")
+                #logger.info(f"월별 평균 매매가: {price_monthly_avg}")
                 forecast_json  = run_forecast_from_avg(price_monthly_avg)
-                logger.info(f"12개월 가격 예측: {forecast_json}")
+                #logger.info(f"12개월 가격 예측: {forecast_json}")
             except Exception as e:
                 logger.warning("부동산 가격 예측 실패: %s", e)
 
