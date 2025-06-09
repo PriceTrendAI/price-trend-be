@@ -448,6 +448,9 @@ class NaverLandCrawler:
         complex_info = {}
         area_detail = {}
         price_history = {}
+        summary_data = {}
+        price_monthly_avg = {}
+        forecast_json = {}
 
         try:
             self.search_page.open()
