@@ -9,15 +9,21 @@ from app.crawler import NaverLandCrawler
 from app.crud import save_apartment_data, delete_apartment_by_id
 from datetime import datetime
 from app.utils import *
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
 Base.metadata.create_all(bind=engine)
-
 app = FastAPI()
 
 origins = [
     "http://localhost:5173",  
     "http://127.0.0.1:5173",
 ]
+
+private_cors = os.getenv("PRIVATE_CORS")
+if private_cors:
+    origins.append(private_cors)
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,13 +43,13 @@ def get_db():
 
 @app.get("/search")
 def get_property_info(keyword: str):
-    crawler = NaverLandCrawler(headless=True)
+    crawler = NaverLandCrawler()
     return crawler.fetch_property_info(keyword=keyword)
 
 
 @app.get("/complex-info")
 def get_complex_info(keyword: str = Query(..., description="단지명 키워드")):
-    crawler = NaverLandCrawler(headless=True)
+    crawler = NaverLandCrawler()
     return crawler.get_complex_info(keyword)
 
 
@@ -54,7 +60,7 @@ def save_area_price_data(
     deal_type: str = Query(..., description="거래 유형 (예: '매매')"),
     db: Session = Depends(get_db),
 ) -> dict:
-    crawler = NaverLandCrawler(headless=True)
+    crawler = NaverLandCrawler()
     try:
         result = crawler.run(keyword, area, deal_type)
 

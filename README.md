@@ -58,6 +58,7 @@ MYSQL_PASSWORD=[your-password]
 MYSQL_HOST=localhost
 MYSQL_PORT=3306
 MYSQL_DB=real_estate_ai
+PRIVATE_CORS=http://[front-end-ip]:[front-end-port]
 ```
 
 ## 🚀 서버 실행 방법

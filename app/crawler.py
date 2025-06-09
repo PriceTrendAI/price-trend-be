@@ -272,7 +272,7 @@ class PricePage:
         self.wait = wait
 
     def load_more(self, limit: int = 100) -> None:
-        logger.info("매매 시세 더보기 %d번 클릭", limit)
+        logger.info("매매 시세 더보기 클릭중", limit)
         for i in range(limit):
             try:
                 short_wait = WebDriverWait(self.driver, 2)
@@ -491,6 +491,7 @@ class NaverLandCrawler:
 
             try:
                 self.detail_page.click_sise_tab()
+                time.sleep(random.uniform(0.5, 1.0))
             except Exception as e:
                 logger.warning("시세 탭 클릭 실패: %s", e)
 
