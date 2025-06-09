@@ -261,7 +261,8 @@ class PricePage:
         logger.info("매매 시세 더보기 %d번 클릭", limit)
         for i in range(limit):
             try:
-                btn = self.wait.until(
+                short_wait = WebDriverWait(self.driver, 2)
+                btn = short_wait.until(
                     EC.element_to_be_clickable((By.XPATH, self.MORE_BUTTON_XPATH))
                 )
                 self.driver.execute_script("arguments[0].click();", btn)
