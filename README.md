@@ -64,7 +64,12 @@ PRIVATE_CORS=http://[front-end-ip]:[front-end-port]
 ## 🚀 서버 실행 방법
 ```bash
 source price-trend-ai/bin/activate
+
+# Run server (local only, accessible via 127.0.0.1)
 uvicorn app.main:app --reload
+
+# Run server (accessible from other devices)
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 ## 🗂 디렉토리 구조
